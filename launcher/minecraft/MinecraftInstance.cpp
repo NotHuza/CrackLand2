@@ -290,6 +290,11 @@ QString MinecraftInstance::coreModsDir() const
     return FS::PathCombine(gameRoot(), "coremods");
 }
 
+QString MinecraftInstance::nilModsDir() const
+{
+    return FS::PathCombine(gameRoot(), "nilmods");
+}
+
 QString MinecraftInstance::resourcePacksDir() const
 {
     return FS::PathCombine(gameRoot(), "resourcepacks");
@@ -461,8 +466,8 @@ QMap<QString, QString> MinecraftInstance::getVariables()
     QMap<QString, QString> out;
     out.insert("INST_NAME", name());
     out.insert("INST_ID", id());
-    out.insert("INST_DIR", QDir(instanceRoot()).absolutePath());
-    out.insert("INST_MC_DIR", QDir(gameRoot()).absolutePath());
+    out.insert("INST_DIR", QDir::toNativeSeparators(QDir(instanceRoot()).absolutePath()));
+    out.insert("INST_MC_DIR", QDir::toNativeSeparators(QDir(gameRoot()).absolutePath()));
     out.insert("INST_JAVA", settings()->get("JavaPath").toString());
     out.insert("INST_JAVA_ARGS", javaArguments().join(' '));
     return out;
@@ -1123,6 +1128,18 @@ std::shared_ptr<ModFolderModel> MinecraftInstance::coreModList() const
         connect(this, &BaseInstance::runningStatusChanged, m_core_mod_list.get(), &ModFolderModel::disableInteraction);
     }
     return m_core_mod_list;
+}
+
+std::shared_ptr<ModFolderModel> MinecraftInstance::nilModList() const
+{
+    if (!m_nil_mod_list)
+    {
+        bool is_indexed = !APPLICATION->settings()->get("ModMetadataDisabled").toBool();
+        m_nil_mod_list.reset(new ModFolderModel(nilModsDir(), is_indexed, false));
+        m_nil_mod_list->disableInteraction(isRunning());
+        connect(this, &BaseInstance::runningStatusChanged, m_nil_mod_list.get(), &ModFolderModel::disableInteraction);
+    }
+    return m_nil_mod_list;
 }
 
 std::shared_ptr<ResourcePackFolderModel> MinecraftInstance::resourcePackList() const
